@@ -89,16 +89,16 @@ export function TestPanel({ graph }: TestPanelProps) {
 
   // Auto-start the run on mount. A ref guard keeps it idempotent so React
   // StrictMode's deliberate double-invoke (dev) doesn't run the flow twice.
+  //
+  // Note: we deliberately do NOT abort the request on unmount. Pairing an
+  // unmount-abort cleanup with the once-only auto-start makes StrictMode's
+  // simulated unmount cancel the only real request. Stale responses are
+  // already neutralised by the monotonic run-id check inside `step`.
   useEffect(() => {
     if (autoStartedRef.current) return
     autoStartedRef.current = true
     restart()
   }, [restart])
-
-  // Cancel any in-flight request when the panel unmounts.
-  useEffect(() => {
-    return () => abortRef.current?.abort()
-  }, [])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: transcript length is an intentional scroll trigger
   useEffect(() => {
