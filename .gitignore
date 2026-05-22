@@ -52,3 +52,6 @@ origami.db-wal
 # test artifacts
 /playwright-report
 /test-results
+
+# codex review logs
+codex-review-*.log
