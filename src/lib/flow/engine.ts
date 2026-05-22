@@ -84,8 +84,11 @@ export async function runFlow(
       // Still waiting — nothing to advance.
       return { session: { ...session }, messages, status: 'awaiting-input' }
     }
-    variables[paused.data.variable] = input
-    transcript.push({ role: 'user', text: input })
+    // Trim the answer so condition matching is not thrown off by stray
+    // whitespace from the channel.
+    const answer = input.trim()
+    variables[paused.data.variable] = answer
+    transcript.push({ role: 'user', text: answer })
     currentId = followEdge(graph, paused.id)
   }
 

@@ -32,9 +32,18 @@ export function TestPanel({ graph }: TestPanelProps) {
   const [input, setInput] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
   const autoStartedRef = useRef(false)
+  // Monotonic run id + abort controller so a stale in-flight request (e.g.
+  // after Restart) can neither append messages nor clobber the fresh session.
+  const runIdRef = useRef(0)
+  const abortRef = useRef<AbortController | null>(null)
 
   const step = useCallback(
     async (currentSession: FlowSession, userInput: string | null) => {
+      abortRef.current?.abort()
+      const controller = new AbortController()
+      abortRef.current = controller
+      const runId = ++runIdRef.current
+
       setPhase('running')
       setError(null)
       try {
@@ -42,7 +51,9 @@ export function TestPanel({ graph }: TestPanelProps) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ graph, session: currentSession, input: userInput }),
+          signal: controller.signal,
         })
+        if (runId !== runIdRef.current) return
         if (!res.ok) {
           const data = (await res.json().catch(() => ({}))) as { error?: string }
           setError(data.error ?? `Request failed (${res.status})`)
@@ -50,6 +61,7 @@ export function TestPanel({ graph }: TestPanelProps) {
           return
         }
         const result = (await res.json()) as RunResult
+        if (runId !== runIdRef.current) return
         setSession(result.session)
         setTranscript((prev) => [...prev, ...result.messages.map(turn)])
         if (result.status === 'error') {
@@ -59,6 +71,7 @@ export function TestPanel({ graph }: TestPanelProps) {
           setPhase(result.status)
         }
       } catch (err) {
+        if (controller.signal.aborted || runId !== runIdRef.current) return
         setError(err instanceof Error ? err.message : 'Network error')
         setPhase('error')
       }
@@ -81,6 +94,11 @@ export function TestPanel({ graph }: TestPanelProps) {
     autoStartedRef.current = true
     restart()
   }, [restart])
+
+  // Cancel any in-flight request when the panel unmounts.
+  useEffect(() => {
+    return () => abortRef.current?.abort()
+  }, [])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: transcript length is an intentional scroll trigger
   useEffect(() => {
@@ -106,7 +124,13 @@ export function TestPanel({ graph }: TestPanelProps) {
         </Button>
       </div>
 
-      <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">
+      <div
+        ref={scrollRef}
+        role="log"
+        aria-live="polite"
+        aria-label="Conversation transcript"
+        className="flex-1 space-y-3 overflow-y-auto p-4"
+      >
         {transcript.length === 0 && phase === 'running' ? (
           <p className="text-center text-xs text-zinc-400">Starting…</p>
         ) : null}
