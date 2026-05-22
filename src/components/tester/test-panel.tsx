@@ -31,6 +31,7 @@ export function TestPanel({ graph }: TestPanelProps) {
   const [error, setError] = useState<string | null>(null)
   const [input, setInput] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
+  const autoStartedRef = useRef(false)
 
   const step = useCallback(
     async (currentSession: FlowSession, userInput: string | null) => {
@@ -73,9 +74,11 @@ export function TestPanel({ graph }: TestPanelProps) {
     void step(fresh, null)
   }, [step])
 
-  // Auto-start the run on mount. `restart` is stable for the panel's lifetime
-  // (the `graph` prop is fixed per mount), so this fires exactly once.
+  // Auto-start the run on mount. A ref guard keeps it idempotent so React
+  // StrictMode's deliberate double-invoke (dev) doesn't run the flow twice.
   useEffect(() => {
+    if (autoStartedRef.current) return
+    autoStartedRef.current = true
     restart()
   }, [restart])
 
