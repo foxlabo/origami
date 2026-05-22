@@ -122,4 +122,125 @@ describe('validateGraph', () => {
     })
     expect(result.ok).toBe(true)
   })
+
+  it('rejects duplicate edge ids', () => {
+    const result = validateGraph({
+      nodes: [
+        { id: 's', type: 'start', position: pos, data: {} },
+        { id: 'e', type: 'end', position: pos, data: {} },
+      ],
+      edges: [
+        { id: 'dup', source: 's', target: 'e' },
+        { id: 'dup', source: 's', target: 'e' },
+      ],
+    })
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/duplicate edge id/i)
+  })
+
+  it('rejects a condition with duplicate case values', () => {
+    const result = validateGraph({
+      nodes: [
+        { id: 's', type: 'start', position: pos, data: {} },
+        {
+          id: 'c',
+          type: 'condition',
+          position: pos,
+          data: {
+            variable: 'answer',
+            cases: [
+              { value: 'yes', label: 'A' },
+              { value: 'yes', label: 'B' },
+            ],
+          },
+        },
+      ],
+      edges: [{ id: '1', source: 's', target: 'c' }],
+    })
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/duplicate case value/i)
+  })
+
+  it('rejects a condition case value of "else"', () => {
+    const result = validateGraph({
+      nodes: [
+        { id: 's', type: 'start', position: pos, data: {} },
+        {
+          id: 'c',
+          type: 'condition',
+          position: pos,
+          data: { variable: 'answer', cases: [{ value: 'else', label: 'X' }] },
+        },
+      ],
+      edges: [{ id: '1', source: 's', target: 'c' }],
+    })
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/reserved/i)
+  })
+
+  it('rejects a condition edge using an unknown branch handle', () => {
+    const result = validateGraph({
+      nodes: [
+        { id: 's', type: 'start', position: pos, data: {} },
+        {
+          id: 'c',
+          type: 'condition',
+          position: pos,
+          data: { variable: 'answer', cases: [{ value: 'yes', label: 'Y' }] },
+        },
+        { id: 'e', type: 'end', position: pos, data: {} },
+      ],
+      edges: [
+        { id: '1', source: 's', target: 'c' },
+        { id: '2', source: 'c', target: 'e', sourceHandle: 'ghost' },
+      ],
+    })
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/unknown branch/i)
+  })
+
+  it('rejects two condition edges from the same branch handle', () => {
+    const result = validateGraph({
+      nodes: [
+        { id: 's', type: 'start', position: pos, data: {} },
+        {
+          id: 'c',
+          type: 'condition',
+          position: pos,
+          data: { variable: 'answer', cases: [{ value: 'yes', label: 'Y' }] },
+        },
+        { id: 'a', type: 'end', position: pos, data: {} },
+        { id: 'b', type: 'end', position: pos, data: {} },
+      ],
+      edges: [
+        { id: '1', source: 's', target: 'c' },
+        { id: '2', source: 'c', target: 'a', sourceHandle: 'yes' },
+        { id: '3', source: 'c', target: 'b', sourceHandle: 'yes' },
+      ],
+    })
+    expect(result.ok).toBe(false)
+    expect(result.errors.join(' ')).toMatch(/more than one edge/i)
+  })
+
+  it('accepts a well-formed condition', () => {
+    const result = validateGraph({
+      nodes: [
+        { id: 's', type: 'start', position: pos, data: {} },
+        {
+          id: 'c',
+          type: 'condition',
+          position: pos,
+          data: { variable: 'answer', cases: [{ value: 'yes', label: 'Y' }] },
+        },
+        { id: 'a', type: 'end', position: pos, data: {} },
+        { id: 'b', type: 'end', position: pos, data: {} },
+      ],
+      edges: [
+        { id: '1', source: 's', target: 'c' },
+        { id: '2', source: 'c', target: 'a', sourceHandle: 'yes' },
+        { id: '3', source: 'c', target: 'b', sourceHandle: 'else' },
+      ],
+    })
+    expect(result.ok).toBe(true)
+  })
 })

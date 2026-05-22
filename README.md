@@ -8,16 +8,19 @@ then test it in a live chat widget.
 
 ## Status
 
-🚧 **Pre-MVP** — under active development.
+✅ **v1.0** — visual builder, flow engine, and live test runner. Two rounds of
+Codex review applied.
 
-## Features (planned for MVP)
+## Features
 
-- 🎨 **Visual builder** — drag-and-drop flow canvas (React Flow)
+- 🎨 **Visual builder** — flow canvas (React Flow) with a node palette and a
+  per-node config panel
 - 🧩 **Node types** — start, message, question, condition, AI response, end
-- ▶️ **Test runner** — built-in chat widget that executes the flow live
+- ▶️ **Test runner** — built-in chat widget that executes the live canvas flow
 - 🤖 **AI nodes** — let a node reply with an LLM (OpenAI)
+- ✅ **Validated** — flows are shape- and semantically-checked before save/run
 - 💾 **Local-first** — SQLite-backed, no server required
-- 🗂 **Multiple bots** — create, edit, delete
+- 🗂 **Multiple bots** — create, rename, delete
 
 ## Tech Stack
 

@@ -9,12 +9,19 @@ import { validateGraph } from '@/lib/flow/validate'
 const MAX_INPUT_CHARS = 4_000
 const MAX_TRANSCRIPT_TURNS = 500
 const MAX_TURN_CHARS = 16_000
+const MAX_VARIABLES = 200
+/** Hard cap on the whole request body — a backstop on top of the field caps. */
+const MAX_BODY_BYTES = 2 * 1024 * 1024
 
 const requestSchema = z.object({
   graph: flowGraphSchema,
   session: z.object({
     currentNodeId: z.string().max(100).nullable(),
-    variables: z.record(z.string().max(64), z.string().max(MAX_TURN_CHARS)),
+    variables: z
+      .record(z.string().max(64), z.string().max(MAX_TURN_CHARS))
+      .refine((v) => Object.keys(v).length <= MAX_VARIABLES, {
+        message: `Too many variables (max ${MAX_VARIABLES})`,
+      }),
     transcript: z
       .array(
         z.object({
@@ -65,9 +72,19 @@ function logError(scope: string, err: unknown): void {
  * semantics, model allow-list) before anything runs.
  */
 export async function POST(req: Request) {
+  let raw: string
+  try {
+    raw = await req.text()
+  } catch {
+    return Response.json({ error: 'Could not read request body' }, { status: 400 })
+  }
+  if (Buffer.byteLength(raw, 'utf8') > MAX_BODY_BYTES) {
+    return Response.json({ error: 'Request body too large' }, { status: 413 })
+  }
+
   let body: unknown
   try {
-    body = await req.json()
+    body = JSON.parse(raw)
   } catch {
     return Response.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
