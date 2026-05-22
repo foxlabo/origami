@@ -44,6 +44,21 @@ Open <http://localhost:3000>.
 - [Development](./docs/DEVELOPMENT.md)
 - [Roadmap](./docs/ROADMAP.md)
 
+## Security model
+
+Origami is designed as a **single-user, local-only** application:
+
+- No authentication / authorisation is built in. Server Actions and the
+  `/api/bot/run` endpoint are reachable by any caller that can hit the server.
+- `/api/bot/run` accepts a flow graph in the request body so the builder can
+  test unsaved canvas changes. The graph is hard-validated (shape, size,
+  semantics) and AI-node models are restricted to an allow-list, but a funded
+  `OPENAI_API_KEY` can still be spent by anyone who can reach the endpoint.
+- The DB lives on the local filesystem (`./origami.db`).
+
+If you deploy Origami beyond `localhost`, **put an auth layer in front of it**
+(Auth.js, reverse-proxy basic auth, or Tailscale-only access).
+
 ## License
 
 [MIT](./LICENSE)

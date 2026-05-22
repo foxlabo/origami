@@ -13,6 +13,7 @@ import {
 } from '@/lib/db/queries'
 import { emptyGraph } from '@/lib/flow/defaults'
 import { flowGraphSchema } from '@/lib/flow/types'
+import { validateGraph } from '@/lib/flow/validate'
 
 const MAX_NAME = 80
 const MAX_DESCRIPTION = 280
@@ -78,6 +79,11 @@ export async function saveBotGraphAction(id: string, graphJson: string): Promise
   const validation = flowGraphSchema.safeParse(parsedGraph)
   if (!validation.success) {
     return { ok: false, error: 'Flow graph failed validation' }
+  }
+  // Semantic checks (one start node, unique ids, no dangling edges, ...).
+  const semantic = validateGraph(validation.data)
+  if (!semantic.ok) {
+    return { ok: false, error: semantic.errors[0] ?? 'Flow graph is invalid' }
   }
   if (!getBot(id)) return { ok: false, error: 'Bot not found' }
   dbUpdateBotGraph(id, JSON.stringify(validation.data))

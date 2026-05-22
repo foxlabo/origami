@@ -36,8 +36,11 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
 export function BotEditor({ botId, botName, initialGraph }: BotEditorProps) {
   // React Flow state. Nodes are typed loosely as Node — the strict FlowNode
-  // shape is enforced on save via flowGraphSchema.
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node>(initialGraph.nodes as Node[])
+  // shape is enforced on save via flowGraphSchema. The start node is marked
+  // non-deletable so it cannot be removed via keyboard/selection.
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>(
+    initialGraph.nodes.map((n) => (n.type === 'start' ? { ...n, deletable: false } : n)) as Node[],
+  )
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(initialGraph.edges as Edge[])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [testGraph, setTestGraph] = useState<FlowGraph | null>(null)
@@ -45,9 +48,27 @@ export function BotEditor({ botId, botName, initialGraph }: BotEditorProps) {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [, startTransition] = useTransition()
 
+  // Connecting an edge: linear nodes keep at most one outgoing edge, condition
+  // nodes keep one per branch handle. A new connection replaces the old one so
+  // routing always matches what is drawn on the canvas.
   const onConnect = useCallback(
-    (connection: Connection) => setEdges((eds) => addEdge(connection, eds)),
-    [setEdges],
+    (connection: Connection) => {
+      const sourceNode = nodes.find((n) => n.id === connection.source)
+      setEdges((eds) => {
+        const filtered =
+          sourceNode?.type === 'condition'
+            ? eds.filter(
+                (e) =>
+                  !(
+                    e.source === connection.source &&
+                    (e.sourceHandle ?? null) === (connection.sourceHandle ?? null)
+                  ),
+              )
+            : eds.filter((e) => e.source !== connection.source)
+        return addEdge(connection, filtered)
+      })
+    },
+    [nodes, setEdges],
   )
 
   // The selected node cast to the strict union — runtime data is always a
