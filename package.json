@@ -1,6 +1,6 @@
 {
   "name": "origami",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Visual no-code chatbot flow builder. Inspired by typebot, re-implemented from scratch.",
   "license": "MIT",
