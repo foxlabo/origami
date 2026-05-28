@@ -3,9 +3,6 @@
 A visual, no-code chatbot flow builder. Design a conversation as a node graph,
 then test it in a live chat widget.
 
-> Inspired by [typebot](https://github.com/baptisteArno/typebot.io). Independently
-> re-implemented from scratch as a portfolio project.
-
 ## Status
 
 ✅ **v1.0** — visual builder, flow engine, and live test runner. Two rounds of
